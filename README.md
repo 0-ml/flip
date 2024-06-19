@@ -2,7 +2,7 @@
 
 ## Setup Environments
 We use Anaconda to install and manage the required Python packages.
-We provide the shell script for seting up the environments, which is `/tools/install_pt_2100.sh`.
+We provide the shell script for setting up the environments, which is `/tools/install_pt_2100.sh`.
 
 ## Download Datasets
 The instructions for downloading and preparing datasets can be found [here](https://github.com/KaiyangZhou/CoOp/blob/main/DATASETS.md).
