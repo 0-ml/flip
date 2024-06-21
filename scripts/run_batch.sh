@@ -27,8 +27,6 @@ $prefix python main.py \
 --num_prompt=1 \
 --local_epochs=1 \
 --global_rounds=50 \
---prompt_batch_size=2 \
---np_forward_times=8 \
 --eval_multi=false \
 --client_eval=false \
 --slurm=true \
