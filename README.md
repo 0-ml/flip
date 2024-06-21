@@ -13,7 +13,7 @@ FLiP is also remarkably more convenient to use than modifying centralized prompt
 
 # High-level Overview of Code Structure  
 ```
-FLip
+FLiP
 ├── flcore
 │   ├── clients                  # local training algorithms for clients
 │   │   ├── client_base.py
