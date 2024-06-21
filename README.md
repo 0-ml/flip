@@ -2,14 +2,14 @@
 <h1 align="center">
     <img src='./assets/FLiP_logo.png'>
 </h1>
-# Brief Introduction
+# Brief Introduction  
 FLiP is a comprehensive benchmark suite for large-scale evaluation of federated prompt learning methods, particularly on vision tasks. 
 It integrates a rich set of federated prompt learning algorithms to provide a reproducible benchmark with aligned experimental settings to track the cutting-edge advancements in this field. 
 FLiP also offers off-the-shelf highly-reusable functionalities for flexible customization and agile developing of novel federated prompt learning algorithms.
 Blessed by the decoupled design of federated learning and prompt learning modules,
 it can be readily extended to harvest the progress from federated learning and prompt learning communities.
 FLiP is also remarkably more convenient to use than modifying centralized prompt learning repos to adapt to federated settings.
-# High-level Overview of Code Structure 
+# High-level Overview of Code Structure  
 ```
 FLip
 ├── flcore
@@ -53,11 +53,11 @@ FLip
 └── tools                        # misc tools for building envs, dataset processing, etc
     └── install_pt_2100.sh
 ```
-# Setup Environments
+# Setup Environments  
 We use Anaconda to install and manage the required Python packages.
 We provide the shell script for setting up the environments, which is `/tools/install_pt_2100.sh`.
 
-# Download Datasets
+# Download Datasets  
 The instructions for downloading and preparing datasets can be found [here](https://github.com/KaiyangZhou/CoOp/blob/main/DATASETS.md).
 
 # Run Experiments
