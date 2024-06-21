@@ -80,7 +80,7 @@ The instructions for downloading and preparing datasets can be found [here](http
 
 # Run Experiments
 By default, we use SLURM for job scheduling in order to achieve large-scale evaluation.
-For example, the shell script for running experiments that sweeps the combination of 
+For example, the shell script for running experiments for evalation of global model performance that sweeps the combination of 
 various algorithms and datasets is `/scripts/run_batch.sh`.
 To run experiments without SLURM, 
 turn off the SLURM option in `run_batch.sh` to  `--slurm=false`.
@@ -94,7 +94,7 @@ for algo in CLIP CoOp CoCoOp PromptSRC OTP KgCoOp PLOT ProDA ProGrad; do
 for dataset in caltech101 fgvc_aircraft food101 oxford_flowers oxford_pets stanford_cars ucf dtd; do
 $prefix python main.py \
 --times=3 \
---benchmark=base2novel \
+--benchmark=global \
 --data_root=~/data/prompt \
 --num_workers=6 \
 --precision=amp \
