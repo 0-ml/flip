@@ -3,7 +3,22 @@
     <img src='./assets/FLiP_logo.png'>
 </h1>
 
-# Brief Introduction  
+# Federated Prompt Learning for VLM Adaptation  
+<h1 align="center">
+    <img src='./assets/federated_prompt_learning_concept.jpeg'>
+</h1>
+Federated Prompt Learning (FPL) aims to learn 
+a set of soft prompts to adapt pre-trained vision-language models to downstream tasks 
+under federated training. 
+Conventional train-from-scratch FL requires transmitting the whole model 
+for many rounds to converge.
+In contrast, 
+FPL leverages pre-trained vision and language features and only communicates prompt vectors 
+between the server and clients. 
+The figure above presents a conceptual illustration 
+of a federated prompt learning system.
+
+# Brief Introduction of FLiP  
 FLiP is a comprehensive benchmark suite for large-scale evaluation of federated prompt learning methods, particularly on vision tasks. 
 It integrates a rich set of federated prompt learning algorithms to provide a reproducible benchmark with aligned experimental settings to track the cutting-edge advancements in this field. 
 FLiP also offers off-the-shelf highly-reusable functionalities for flexible customization and agile developing of novel federated prompt learning algorithms.
