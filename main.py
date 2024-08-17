@@ -56,7 +56,7 @@ def special_args(args):
 
     return args
 
-def main(args):
+def main(args, remaining_args):
     if args.deterministic == 'true':
         torch.manual_seed(args.seed)
         random.seed(args.seed)
@@ -67,13 +67,12 @@ def main(args):
     elif args.verbose2:
         log.level = 'debug'
     for i in range(args.times):
-        server = get_server(args, i)
+        server = get_server(args, remaining_args, i)
         start = time.time()
         server.run()
         end = time.time()
         log.info(f'Experiment run: {i}, Total time ellapsed: {end-start}s')
     parse_results(args)
-
 
 
 if __name__ == "__main__":
@@ -86,7 +85,6 @@ if __name__ == "__main__":
                                  'base2novel', 'xdomain', 'multidomain', 'xdataset'],
                                 help='benchmark metrics for algorithms evaluation')
     parser.add_argument('-falg', "--fed_algo", type=str, default='FedAvg',
-                                        choices=['FedAvg', 'FedOTP', ],
                                 help='federated learning algorithms')
     parser.add_argument('-palg', "--prompt_algo", type=str, default="CoOp",
                                         choices=['CLIP', 'CoOp', 'CoCoOp', 'PLOT',
@@ -198,7 +196,7 @@ if __name__ == "__main__":
                                 help='prompt batch size for ProDA') # ProDA
     # FL algorithms' settings
 
-    args = parser.parse_args()
+    args, remaining_args = parser.parse_known_args()
     args.data_root = os.path.expanduser(args.data_root)
     if args.slurm == 'true':
         print(f'Job {args.prompt_algo} allocated GPU: {os.environ["CUDA_VISIBLE_DEVICES"]}')
@@ -207,4 +205,4 @@ if __name__ == "__main__":
         os.environ["CUDA_VISIBLE_DEVICES"] = str(args.device_id)
 
     args = special_args(args)
-    main(args)
+    main(args, remaining_args)

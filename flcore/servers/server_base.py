@@ -20,6 +20,8 @@ from ..pretty.history import History
 from ..pretty.logger import log
 
 class ServerBase(object):
+    extra_arguments = {}
+
     def __init__(self, args, times):
         # Set up the main attributes
         self.args = args
@@ -64,6 +66,16 @@ class ServerBase(object):
         self.precision = args.precision
         self.eval_scaler = args.eval_scaler
         self.eval_rounds = args.eval_rounds
+        self._assign_arguments(args)
+
+    def _assign_arguments(self, args):
+        custom_args = {}
+        for k, v in self.extra_arguments.items():
+            k = k[0].replace('--', '').replace('-', '_')
+            v = getattr(args, k)
+            setattr(self, k, v)
+            custom_args[k] = v
+        return custom_args
 
     def init_clients(self, clientObj):
         self.init_dataset()
