@@ -20,7 +20,7 @@ FLiP is also remarkably more convenient to use than modifying centralized prompt
 
 FLiP offers modularized design of each components. 
 In this way,
-it is capable of integrating a rich collection federated learning 
+it is capable of integrating a rich collection of federated learning 
 and prompt learning algorithms,
 providing unified data loading interface on 
 a wide variety of datasets
