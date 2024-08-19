@@ -6,7 +6,7 @@
 # Federated Prompt Learning for VLM Adaptation  
 <h1 align="center">
     <img src='./assets/federated_prompt_learning_concept.jpeg'
-    width=80%>
+    width=100%>
 </h1>
 Federated Prompt Learning (FPL) aims to learn 
 a set of soft prompts to adapt pre-trained vision-language models to downstream tasks 
