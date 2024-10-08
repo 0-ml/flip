@@ -26,7 +26,6 @@ class Client(object):
         self.dataset = args.dataset
         self.device = torch.device('cuda', args.device_id)
         self.client_id = id
-        self.save_folder_name = args.save_folder_name
         self.trainloader = trainloader
         self.testloader = testloader
         self.batch_size = args.batch_size

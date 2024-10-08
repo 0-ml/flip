@@ -6,7 +6,7 @@ for algo in CLIP CoOp CoCoOp PromptSRC OTP KgCoOp PLOT ProDA ProGrad; do
 for dataset in caltech101 fgvc_aircraft food101 oxford_flowers oxford_pets stanford_cars ucf dtd; do
 $prefix python main.py \
 --times=3 \
---benchmark=base2novel \
+--benchmark=global \
 --data_root=~/data/prompt \
 --num_workers=6 \
 --precision=amp \
@@ -27,8 +27,6 @@ $prefix python main.py \
 --num_prompt=1 \
 --local_epochs=1 \
 --global_rounds=50 \
---prompt_batch_size=2 \
---np_forward_times=8 \
 --eval_multi=false \
 --client_eval=false \
 --slurm=true \
