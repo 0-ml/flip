@@ -42,6 +42,7 @@ def parse_results(args):
 
 def special_args(args):
     if args.prompt_algo == 'CoCoOp':
+        args.batch_size = 1
         args.eval_scaler = 1
     if args.prompt_algo == 'OTP':
         args.fed_algo = 'FedOTP'
@@ -53,6 +54,8 @@ def special_args(args):
         args.prompt_batch_size = 1
     if args.prompt_algo == 'CLIP':
         args.ctx_init = 'a photo of a'
+    if args.central == 'true':
+        args.fed_algo = 'Central'
 
     return args
 
@@ -62,6 +65,7 @@ def main(args):
         random.seed(args.seed)
         np.random.seed(args.seed)
         torch.backends.cudnn.benchmark = False
+        # torch.use_deterministic_algorithms(True)
     if args.verbose:
         log.level = 'verbose'
     elif args.verbose2:
@@ -71,7 +75,7 @@ def main(args):
         start = time.time()
         server.run()
         end = time.time()
-        log.info(f'Experiment run: {i}, Total time ellapsed: {end-start}s')
+        log.info(f'Experiment run: {i}, Total time ellapsed: {int(end-start)}s')
     parse_results(args)
 
 
@@ -81,6 +85,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     # general
+    parser.add_argument('-task', "--task", type=str, default='class',
+                                        choices=['class', 'seg', ], )
     parser.add_argument('-bench', "--benchmark", type=str, default="global",
                         choices=['dual', 'global', 'personal',
                                  'base2novel', 'xdomain', 'multidomain', 'xdataset'])
@@ -89,7 +95,8 @@ if __name__ == "__main__":
     parser.add_argument('-palg', "--prompt_algo", type=str, default="CoOp",
                                         choices=['CLIP', 'CoOp', 'CoCoOp', 'PLOT',
                                                  'ALIGN', 'ProDA', 'ProGrad', 'PromptSRC',
-                                                 'BPL', 'KgCoOp','OTP', ])
+                                                 'BPL', 'KgCoOp','OTP',
+                                                 'DenseCoOp'])
     parser.add_argument('-ctr', "--central", type=str, default='false')
     parser.add_argument('-did', "--device_id", type=int, default=0)
     parser.add_argument('-t', "--times", type=int, default=1)
@@ -100,7 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--verbose2", action='store_true')
     # model
     parser.add_argument('-ibb', "--image_backbone", type=str, default='RN50',
-                                                    choices=['RN50', 'ViT-B/16'])
+                                                    choices=['RN50', 'RN101', 'ViT-B/16'])
     parser.add_argument('-m', "--model", type=str, default="resnet50")
     # dataset
     parser.add_argument('-data', "--dataset", type=str, default="caltech101")
@@ -108,7 +115,8 @@ if __name__ == "__main__":
     parser.add_argument('-root', "--data_root", type=str, default="~/data/prompt")
     parser.add_argument('-dnt', "--num_shot", type=int, default=1)
     parser.add_argument('-dns', "--num_shards", type=int, default=10)
-    parser.add_argument('-dsm', "--split_mode", type=str, default='dirichlet', choices=['dirichlet', 'iid'])
+    parser.add_argument('-dsm', "--split_mode", type=str, default='dirichlet',
+                        choices=['dirichlet', 'iid', 'task','predefined'])
     parser.add_argument('-dsa', "--split_alpha", type=float, default=1)
     parser.add_argument('-dsb', "--split_beta", type=float, default=1)
     parser.add_argument('-dtf', "--data_transform", type=str, default="default", choices=['default', 'randaug'])
@@ -149,8 +157,9 @@ if __name__ == "__main__":
     parser.add_argument('-csc', "--class_specific_context", type=str, default='false', choices=['true', 'false'])
     parser.add_argument('-cti', "--ctx_init", type=str, default='')
     # prompt learning algorithms' settings
-
     parser.add_argument('-pbsz', "--prompt_batch_size", type=int, default=0) # ProDA
+    # segmentation task settings
+    parser.add_argument('-stls', "--seg_text_loss_scale", type=float, default=1) #
     # FL algorithms' settings
 
     args = parser.parse_args()

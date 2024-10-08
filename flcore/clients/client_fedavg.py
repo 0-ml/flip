@@ -8,8 +8,8 @@ from torch.nn import functional as F
 
 from .client_base import Client
 from ..utils import (MovingAverage, AccuracyCounter, DivergeError,
-                          topk, unit, build_loss_fn, eval_global, eval_base_novel,
-                          filter_states)
+                          topk, IoU, unit, build_loss_fn, eval_global, eval_base_novel,
+                          collect_state)
 from ..pretty.logger import log
 
 class ClientFedAvg(Client):
@@ -39,7 +39,8 @@ class ClientFedAvg(Client):
         }
         init_state = {
             k: v.to(self.device, copy=True) for k, v in self.init_state.items()}
-        # self.model.train() # keep BN fixed
+        if self.task == 'seg':
+            self.model.decoder.train()
         self.model.update_global_text_feats()
         try:
             for e in range(self.local_epochs):
@@ -52,10 +53,7 @@ class ClientFedAvg(Client):
             return {'status': 'error', 'exception': e, **result}
 
         result.update({
-            'state': {
-                k: v.detach().clone().cpu()
-                for k, v in self.model.prompt_learner.state_dict().items()
-                    if filter_states(self.prompt_algo, k)},
+            'state': collect_state(self.model, self.task),
             'accuracy': float(avg_accs.mean()),
             'loss': float(avg_losses.mean()),
             'num_train_samples': len(self.trainloader.dataset.targets)
@@ -71,7 +69,8 @@ class ClientFedAvg(Client):
                 msg += f', eval_novel: {top1_novel:.2%}'
                 result.update({'eval_novel':top1_novel})
             else:
-                top1, _ = eval_global(self.model,  self.testloader, self.device, self.precision)
+                top1, _ = eval_global(self.model,  self.testloader, self.device,
+                                      self.precision, self.task)
                 result.update({
                     'eval_acc':top1,
                 })
@@ -129,7 +128,7 @@ class ClientFedAvg(Client):
                 if self.grad_clipping_norm > 0:
                     self.grad_clip()
                 self.optimizer.step()
-        train_acc = topk(output, target)[0]
+        train_acc = self.metric(output, target)
         avg_losses.add(loss)
         avg_add_losses.add(add_loss)
         avg_accs.add(train_acc)
@@ -143,7 +142,8 @@ class ClientFedAvg(Client):
             del self.init_state
 
     def round_eval(self, avg_losses, avg_add_losses, cur_epoch):
-        top1, _ = eval_global(self.model,  self.testloader, self.device, self.precision)
+        top1, _ = eval_global(self.model,  self.testloader, self.device,
+                              self.precision, self.task)
         msg = f'{self.prompt_algo}, c: {self.client_id}'
         log.verbose(
             f'{msg}, eval: {float(top1):.2%}, '

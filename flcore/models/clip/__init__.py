@@ -1,4 +1,5 @@
 from .clip import *
+from .ZSCLIP import ZSCLIP
 from .ProDA import ProDACLIP
 from .CoOp import CoOpCLIP
 from .CoCoOp import CoCoOpCLIP
@@ -9,8 +10,10 @@ from .ProGrad import ProGradCLIP
 from .BPLCLIP import BPLCLIP
 from .KgCoOp import KgCoOpCLIP
 
+from .CoOp import DenseCoOpCLIP
+
 clip_maps = {
-    'CLIP': CoOpCLIP,
+    'CLIP': ZSCLIP,
     'CoOp': CoOpCLIP,
     'CoCoOp': CoCoOpCLIP,
     'PLOT': PLOTCLIP,
@@ -20,4 +23,5 @@ clip_maps = {
     'BPL': BPLCLIP,
     'KgCoOp': KgCoOpCLIP,
     'OTP': FedOTPCLIP,
+    'DenseCoOp': DenseCoOpCLIP,
 }

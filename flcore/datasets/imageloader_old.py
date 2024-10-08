@@ -7,10 +7,10 @@ import math
 import shutil
 import copy
 import numpy as np
+import random
 from .utils import check_dirs_exist
 
-from .utils import (ImageSubset, SegSubset, split_dataset, update_class_names,
-                    split_seg_dataset)
+from .utils import ImageSubset, split_dataset, update_class_names
 import torchvision.transforms as transforms
 from .info import INFO
 from .randtransform import RandTransform
@@ -37,20 +37,8 @@ from .tiny_imagenet import TinyImageNet
 from .caltech101 import NEW_CNAMES_CALTECH
 from .eurosat import NEW_CNAMES_EURO
 
-from PIL import Image
-try:
-    from torchvision.transforms import InterpolationMode
-    BICUBIC = InterpolationMode.BICUBIC
-except ImportError:
-    BICUBIC = Image.BICUBIC
-from .voc2012 import VOC2012
-from .cityscapes import CityScapes
-from .segaugment import seg_augment
 
-SegDatasets = {
-    'voc2012': VOC2012,
-    'cityscapes': CityScapes,
-}
+
 
 replace_dicts = {
     'caltech101': NEW_CNAMES_CALTECH,
@@ -64,12 +52,12 @@ replace_dicts = {
     'sun397': {},
     'stanford_cars': {},
     'imagenet': {},
-    'inaturalist': {},
     'imagenet_a': {},
     'imagenet_r': {},
     'imagenet_s': {},
     'imagenetv2': {},
     'tiny_imagenet': {},
+    'inaturalist': {},
     'domain_net': {},
 }
 
@@ -114,7 +102,9 @@ def split_base_new(dataset_path, class_names):
                                     'test_base', 'test_new']):
         print('Base and New datasets have been splited, skip...')
         return
-    class_names.sort()
+    print('Splitting Base/New datasets...')
+    # class_names.sort()
+    random.shuffle(class_names)
     m = math.ceil( len(class_names) / 2)
     partitions ={'base': class_names[:m],
                 'new': class_names[m:] }
@@ -132,24 +122,23 @@ def augment(name, train, data_transform):
     info = INFO[name]
     mean, std = info['moments']
     if not train:
-        crop_size = info['shape'][-1]
         transform_test = transforms.Compose([
-        tv.transforms.Resize(crop_size, interpolation=BICUBIC),
-        transforms.CenterCrop(crop_size),
+        tv.transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)])
         return transform_test
     else:
         augments = []
+        resize = 240
         crop_size = info['shape'][-1]
-        augments.append(transforms.RandomResizedCrop(crop_size, interpolation=BICUBIC))
+        augments.append(tv.transforms.Resize(resize))
+        augments.append(tv.transforms.RandomCrop(crop_size))
         augments.append(tv.transforms.RandomHorizontalFlip())
         augments.append(tv.transforms.ToTensor())
-        # augments.append(tv.transforms.Normalize(*info['moments']))
+        augments.append(tv.transforms.Normalize(*info['moments']))
         if data_transform == 'default':
             return tv.transforms.Compose(augments)
         if data_transform == 'random':
-            resize = 240
             return RandTransform(mean, std, crop_size, resize)
 
 def split_fewshot_subset(train_dataset, num_shot, split):
@@ -275,37 +264,4 @@ def MultiDomainImageLoader(bench, name, split, batch_size, num_clients, num_shar
     if split == 'test' or split == 'val':
         dataloaders = {dname: dloader for dname, dloader
                             in zip(multi_domain_info[name], dataloaders)}
-    return dataloaders
-
-def init_seg_dataset(data_dir, name, split, seed, num_shot, num_clients):
-    dataset_folder = os.path.join(data_dir, name)
-    transforms = seg_augment(name, split)
-    n_sample = num_shot * num_clients if num_shot > 0 else -1
-    dataset = SegDatasets[name](dataset_folder, split, transforms,
-                                            n_sample=n_sample, seed=seed)
-    return dataset
-
-
-def SegLoader(
-        bench, name, split, batch_size, num_clients, num_shards, num_shot=16,
-        split_mode='dirichlet', parallel=False, alpha=0.5, beta=2, data_dir=None,
-        img_folder= 'images', data_transform='default', drop_last=False, num_workers=8,
-        subsample=None, seed=0, multi_domain=False):
-    dataset = init_seg_dataset(data_dir, name, split, seed, num_shot, num_clients)
-    kwargs = {'drop_last': drop_last}
-    if parallel:
-        kwargs = {'pin_memory': False,
-                  'num_workers': num_workers,
-                  'drop_last': drop_last, }
-    Loader = functools.partial(torch.utils.data.DataLoader, **kwargs)
-    if split == 'test' or split == 'val':
-        return Loader(SegSubset(dataset), batch_size, False)
-
-    dataloaders = []
-    splits = split_seg_dataset(dataset, num_clients, alpha, seed)
-    shuffle = split == 'train'
-
-    for c in range(num_clients):
-        loader = Loader(splits[c], batch_size, shuffle=shuffle)
-        dataloaders.append(loader)
     return dataloaders

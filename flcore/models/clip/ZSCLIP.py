@@ -27,6 +27,7 @@ CUSTOM_TEMPLATES = {
     "imagenet_s": "a photo of a {}.",
     "domain_net": "a photo of a {}.",
     "tiny_imagenet": "a photo of a {}.",
+    "inaturalist": "a photo of a {}.",
 }
 
 class ZSCLIP(BaseCLIP):
@@ -49,7 +50,7 @@ class ZSCLIP(BaseCLIP):
         self.text_features = text_features
         self.clip_model = clip_model
 
-    def forward(self, image):
+    def forward(self, image, labels=None, test=False):
         image_features = self.clip_model.encode_image(image)
         image_features = image_features[0] # only use pooled feature
         image_features = image_features / image_features.norm(dim=-1,

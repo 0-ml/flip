@@ -8,7 +8,8 @@ from matplotlib import pyplot as plt
 from ..clients.client_fedavg import ClientFedAvg
 from ..servers.server_base import ServerBase
 from ..utils import ( DivergeError, eval_global, eval_base_novel,
-                     eval_personal, svd, eval_domains, filter_states)
+                     eval_personal, svd, eval_domains, collect_state,
+                     load_state_dict)
 from ..pretty.logger import log
 # from scipy.spatial.distance import cosine as CosineSimilarity
 from sklearn.metrics.pairwise import cosine_similarity as CosineSimilarity
@@ -38,7 +39,8 @@ class FedAvg(ServerBase):
                     self.best_acc = top1
                     self.best_acc_mds = md_accs
             else:
-                top1, _ = eval_global(self.model, self.testloader, self.device, self.precision)
+                top1, _ = eval_global(self.model, self.testloader, self.device,
+                                      self.precision, self.task)
                 self.best_acc = top1
                 self.best_acc_per = top1
                 self.best_acc_hm = top1
@@ -71,13 +73,10 @@ class FedAvg(ServerBase):
 
         states, weights, info = self.receive_results(results)
         avg_state = self.aggregate(states, weights)
-        self.model.prompt_learner.load_state_dict(avg_state, strict=False)
+        self.model = load_state_dict(self.model, avg_state, self.task)
         self.model.custom_avg(self.rounds)
-        avg_state =  {
-                k: v.detach().clone().cpu()
-                for k, v in self.model.prompt_learner.state_dict().items()
-                    if filter_states(self.prompt_algo, k)}
-        if self.eval_rounds > 1 and self.rounds % self.eval_rounds != 0:
+        avg_state = collect_state(self.model, self.task)
+        if self.eval_rounds > 1 and (self.rounds % self.eval_rounds != 0):
             return info, top1
 
         if self.bench == 'base2novel':
@@ -100,7 +99,8 @@ class FedAvg(ServerBase):
             self.tb.add_scalar('eval/best_hmean', self.best_acc_hm, self.rounds)
             self.eval_multiple()
         elif self.bench == 'dual':
-            top1, _ = eval_global(self.model, self.testloader, self.device, self.precision)
+            top1, _ = eval_global(self.model, self.testloader, self.device,
+                                  self.precision, self.task)
             top1_per, _ = eval_personal(self.model, states, weights,
                                         self.testloaders_per, self.device, self.precision)
             self.model.prompt_learner.load_state_dict(avg_state, strict=False) # reload avg_state
@@ -136,7 +136,8 @@ class FedAvg(ServerBase):
             self.tb.add_multiple_scalars('eval/multidomain', self.best_acc_mds, self.rounds)
         else:
             # global, xdomain
-            top1, _ = eval_global(self.model, self.testloader, self.device, self.precision)
+            top1, _ = eval_global(self.model, self.testloader, self.device,
+                                  self.precision, self.task)
             self.best_acc = top1 if top1 > self.best_acc else self.best_acc
             self.tb.add_scalar('eval/top1', top1, self.rounds)
             self.tb.add_scalar('eval/best', self.best_acc, self.rounds)

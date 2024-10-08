@@ -9,8 +9,9 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.cuda.amp import GradScaler
 from sklearn import metrics
-from ..utils import AccuracyCounter, build_loss_fn
+from ..utils import AccuracyCounter, build_loss_fn, Metric
 from ..optimizers.sam import SAM
+from ..datasets.info import INFO
 
 class Client(object):
     """
@@ -18,6 +19,7 @@ class Client(object):
     """
     def __init__(self, args, id, trainloader, testloader, **kwargs):
         self.args = args
+        self.task = args.task
         self.bench = args.benchmark
         self.fed_algo = args.fed_algo
         self.prompt_algo = args.prompt_algo
@@ -37,7 +39,6 @@ class Client(object):
         self.momentum = args.optim_momentum
         self.weight_decay = args.optim_weight_decay
         self.grad_clipping_norm = args.grad_clipping_norm
-        self.task = 'image'
         self.client_eval = args.client_eval == 'true'
         self.central = args.central == 'true'
         self.loss_type = self.args.loss_type
@@ -49,12 +50,27 @@ class Client(object):
         self.rounds = rounds
         self.model = copy.deepcopy(global_model)
         self.load_states()
-        self._init_opt(self.model.prompt_learner, self.optim_name, self.learning_rate)
-        self.loss_func = self.adjusted_loss(self.loss_type, 'mean')
+        self._init_opt(self.model, self.optim_name, self.learning_rate)
+        self._init_loss()
+        self._init_metric()
+
+    def _init_metric(self, ):
+        if self.task == 'class':
+            self.metric = Metric(self.task, k=(1,), count=False)
+        elif self.task == 'seg':
+            num_classes = INFO[self.dataset]['num_classes']
+            ignore_index = INFO[self.dataset]['ignore_index']
+            self.metric = Metric(self.task, num_classes=num_classes,
+                                    ignore_index=ignore_index)
+
+    def _init_loss(self,):
+        if self.task == 'class':
+            self.loss_func = self.adjusted_loss(self.loss_type, 'mean')
+        elif self.task == 'seg':
+            ignore_index = INFO[self.dataset]['ignore_index']
+            self.loss_func = nn.CrossEntropyLoss(ignore_index=ignore_index)
 
     def _init_opt(self, model, optim, lr):
-        # params = [{'params': model.parameters(), 'lr': lr}]
-        # params = model.parameters()
         params = filter(lambda p: p.requires_grad, model.parameters())
         if optim == 'sgd':
             self.optimizer = torch.optim.SGD(params, lr=lr, momentum=self.momentum,
@@ -96,7 +112,7 @@ class Client(object):
     def grad_func(self, init_state):
         pass
 
-    def adjusted_loss(self, loss_type='bce', reduction='mean'):
+    def adjusted_loss(self, loss_type='ce', reduction='mean'):
         stats = torch.tensor(self.trainloader.stats)
         base_probs = (stats/stats.sum()).to(self.device)
         tau = 1

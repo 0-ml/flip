@@ -2,11 +2,13 @@
 
 from flcore.servers.server_fedavg import FedAvg
 from flcore.servers.server_fedotp import FedOTP
+from flcore.servers.server_central import Central
 
 
 server_maps = {
     'FedAvg': FedAvg,
     'FedOTP': FedOTP,
+    'Central': Central,
 }
 
 

@@ -22,6 +22,7 @@ from ..pretty.logger import log
 class ServerBase(object):
     def __init__(self, args, times):
         # Set up the main attributes
+        self.task = args.task
         self.args = args
         self.bench = args.benchmark
         self.fed_algo = args.fed_algo
@@ -51,7 +52,6 @@ class ServerBase(object):
         self.grad_clipping_norm = args.grad_clipping_norm
         self.seed = times
         self.clients = []
-        self.task = 'image'
         self.num_shot = args.num_shot
         self.num_workers = args.num_workers
         self.client_drop_rate = args.client_drop_rate
@@ -64,6 +64,11 @@ class ServerBase(object):
         self.precision = args.precision
         self.eval_scaler = args.eval_scaler
         self.eval_rounds = args.eval_rounds
+        self.optim_name = args.optim_name
+        self.momentum = args.optim_momentum
+        self.weight_decay = args.optim_weight_decay
+        self.learning_rate_scheduler = args.lr_scheduler
+        self.loss_type = self.args.loss_type
 
     def init_clients(self, clientObj):
         self.init_dataset()
@@ -104,9 +109,16 @@ class ServerBase(object):
                                                  clip_model)
 
         print("Turning off gradients in both the image and the text encoder")
+        def requires_grad_filter(name):
+            requires_list = ['prompt_learner', 'decoder',]
+            excludes_list = ['prompt_learner.embedding_func.weight']
+            for k in requires_list:
+                if k in name and name not in excludes_list:
+                    return True
+            return False
         for name, param in self.model.named_parameters():
-            if "prompt_learner" not in name:
-                param.requires_grad_(False)
+            param.requires_grad_(requires_grad_filter(name))
+            print(name, param.requires_grad)
 
         if self.args.init_weights:
             load_pretrained_weights(self.model.prompt_learner, self.args.init_weights)

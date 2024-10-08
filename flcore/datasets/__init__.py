@@ -1,6 +1,6 @@
 from .imageloader import ImageLoader
 from .imageloader import MultiDomainImageLoader
-
+from .imageloader import SegLoader
 
 datasets_map = {
     'caltech101': ImageLoader,
@@ -19,6 +19,8 @@ datasets_map = {
     'imagenet_s': ImageLoader,
     'imagenetv2': ImageLoader,
     'tiny_imagenet': ImageLoader,
+    'inaturalist': ImageLoader,
     'domain_net': MultiDomainImageLoader,
-
+    'voc2012': SegLoader,
+    'cityscapes': SegLoader,
 }

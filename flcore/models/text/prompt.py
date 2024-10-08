@@ -14,6 +14,7 @@ _tokenizer = _Tokenizer()
 class BasePromptLearner(nn.Module):
     def __init__(self, args, classnames, clip_model):
         super().__init__()
+        self.task = args.task
         self.prompt_algo = args.prompt_algo
         self.precision = args.precision
         self.n_cls = len(classnames)
@@ -31,7 +32,8 @@ class BasePromptLearner(nn.Module):
         image_size = INFO[args.dataset]['shape'][-1]
         cfg_imsize = image_size
         self.class_token_position = args.class_token_position
-        assert cfg_imsize == clip_imsize, f"cfg_imsize ({cfg_imsize}) must equal to clip_imsize ({clip_imsize})"
+        if self.task == 'class':
+            assert cfg_imsize == clip_imsize, f"cfg_imsize ({cfg_imsize}) must equal to clip_imsize ({clip_imsize})"
 
         self.prompt_prefix, self.ctx_vectors = self.init_prompt()
 
@@ -392,11 +394,10 @@ class VLPromptLearner(BasePromptLearner):
         if self.ctx_init and self.n_ctx <= 4:
             # use given words to initialize context vectors
             ctx_init = ctx_init.replace("_", " ")
-            n_ctx = n_ctx
             prompt = clip.tokenize(ctx_init)
             with torch.no_grad():
                 embedding = self.embedding_func(prompt).type(self.dtype)
-            ctx_vectors = embedding[0, 1: 1 + n_ctx, :]
+            ctx_vectors = embedding[0, 1: 1 + self.n_ctx, :]
             prompt_prefix = ctx_init
         else:
             # random initialization
@@ -576,6 +577,7 @@ CUSTOM_TEMPLATES = {
     "imagenet_s": "a photo of a {}.",
     "domain_net": "a photo of a {}.",
     "tiny_imagenet": "a photo of a {}.",
+    "inaturalist": "a photo of a {}.",
 }
 
 class KgCoOpPromptLearner(BasePromptLearner):
@@ -638,3 +640,8 @@ class KgCoOpPromptLearner(BasePromptLearner):
         )
 
         return prompts
+
+
+class DensePromptLearner(BasePromptLearner):
+    def __init__(self, args, classnames, clip_model):
+        super().__init__(args, classnames, clip_model)

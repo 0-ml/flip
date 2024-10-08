@@ -4,6 +4,8 @@ import os
 import shutil
 import random
 import json
+from PIL import Image
+from torch.utils.data import Dataset
 from collections import defaultdict, OrderedDict
 from .utils import read_json
 
@@ -236,3 +238,56 @@ class Datum:
     @property
     def classname(self):
         return self._classname
+
+
+
+class BaseSegDataset(Dataset):
+    def __init__(self, dataset_dir, split, **kwargs):
+        # parse the input list
+        self.dataset_dir = dataset_dir
+        self.split = 'train' if split == 'train' else 'val'
+        self.parse_input_list(split, **kwargs)
+
+    def parse_input_list(self, split, max_sample=-1, start_idx=-1, end_idx=-1):
+        assert isinstance(split, str)
+        if "cityscapes" in self.dataset_dir:
+            d_list_path = os.path.join(self.dataset_dir,
+                                       'gtFine',
+                                       f'{self.split}.txt')
+            self.list_sample = [
+                [
+                    line.strip(),
+                    line.strip()[:-15] + "gtFine_labelTrainIds.png",
+                ]
+                for line in open(d_list_path, "r")
+            ]
+        elif "voc2012" in self.dataset_dir:
+            d_list_path = os.path.join(self.dataset_dir,
+                                       'VOCdevkit/VOC2012/ImageSets/Segmentation',
+                                       f'{self.split}.txt')
+            self.list_sample = [
+                [
+                    "{}.jpg".format(line.strip()),
+                    "{}.png".format(line.strip()),
+                ]
+                for line in open(d_list_path, "r")
+            ]
+        else:
+            raise "unknown dataset!"
+
+        if max_sample > 0:
+            self.list_sample = self.list_sample[0:max_sample]
+        if start_idx >= 0 and end_idx >= 0:
+            self.list_sample = self.list_sample[start_idx:end_idx]
+
+        self.num_sample = len(self.list_sample)
+        assert self.num_sample > 0
+        print(f"split: {split}, num samples: {self.num_sample}")
+
+    def img_loader(self, path, mode):
+        with open(path, "rb") as f:
+            img = Image.open(f)
+            return img.convert(mode)
+
+    def __len__(self):
+        return self.num_sample

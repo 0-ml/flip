@@ -67,6 +67,8 @@ class AttentionPool2d(nn.Module):
         self.spacial_dim = spacial_dim
 
     def forward(self, x):
+        if x.shape[-1] > 7: # hack to adapt to images with resolution > 224
+            x = F.interpolate(x, size=(7, 7), mode="bilinear", align_corners=False)
         x = x.reshape(x.shape[0], x.shape[1], x.shape[2] * x.shape[3]).permute(2, 0, 1)  # NCHW -> (HW)NC
         x = torch.cat([x.mean(dim=0, keepdim=True), x], dim=0)  # (HW+1)NC
         x = x + self.positional_embedding[:, None, :].to(x.dtype)  # (HW+1)NC
