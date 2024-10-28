@@ -90,7 +90,7 @@ class AccuracyCounter:
         self.size += target.size(0)
         if output.dim == 3:
             output = output.mean(dim=1)
-        if self.task == 'image':
+        if self.task == 'class':
             for i, a in enumerate(topk(output, target, self.k, True)):
                 self.correct[i] += a
         if self.task == 'seg':
