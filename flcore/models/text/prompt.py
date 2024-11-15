@@ -16,9 +16,9 @@ class BasePromptLearner(nn.Module):
         super().__init__()
         self.task = args.task
         self.prompt_algo = args.prompt_algo
+        self.dataset = args.dataset
         self.precision = args.precision
         self.n_cls = len(classnames)
-        self.n_ctx = args.num_context
         self.n_prm = args.num_prompt
         self.embedding_func = clip_model.token_embedding
         self.ctx_init = args.ctx_init
@@ -34,6 +34,14 @@ class BasePromptLearner(nn.Module):
         self.class_token_position = args.class_token_position
         if self.task == 'class':
             assert cfg_imsize == clip_imsize, f"cfg_imsize ({cfg_imsize}) must equal to clip_imsize ({clip_imsize})"
+        if len(self.ctx_init) == 0:
+            self.n_ctx = args.num_context
+        elif self.ctx_init == 'CLIP':
+            ctx_init = CUSTOM_TEMPLATES[self.dataset]
+            ctx_init = ctx_init.replace(" {}.", "")
+            self.n_ctx = len(ctx_init.split(" "))
+        else:
+            self.n_ctx = len(ctx_init.split(" "))
 
         self.prompt_prefix, self.ctx_vectors = self.init_prompt()
 
@@ -72,13 +80,18 @@ class BasePromptLearner(nn.Module):
     def init_prompt(self, ):
         if self.ctx_init:
             # use given words to initialize context vectors
-            ctx_init = self.ctx_init.replace("_", " ")
+            if self.ctx_init == 'CLIP':
+                ctx_init = CUSTOM_TEMPLATES[self.dataset]
+                ctx_init = ctx_init.replace(" {}.", "")
+            else:
+                ctx_init = self.ctx_init.replace("_", " ")
             n_ctx = len(ctx_init.split(" "))
             prompt = clip.tokenize(ctx_init)
             with torch.no_grad():
                 embedding = self.embedding_func(prompt).type(self.dtype)
             ctx_vectors = embedding[0, 1 : 1 + n_ctx, :]
             ctx_vectors = ctx_vectors.unsqueeze(0)
+            ctx_vectors = torch.tile(ctx_vectors, (self.n_prm, 1, 1))
             prompt_prefix = ctx_init
         else:
             # random initialization
@@ -195,12 +208,18 @@ class CoCoOpPromptLearner(BasePromptLearner):
     def init_prompt(self,):
         if self.ctx_init:
             # use given words to initialize context vectors
-            ctx_init = self.ctx_init.replace("_", " ")
+            if self.ctx_init == 'CLIP':
+                ctx_init = CUSTOM_TEMPLATES[self.dataset]
+                ctx_init = ctx_init.replace(" {}.", "")
+            else:
+                ctx_init = self.ctx_init.replace("_", " ")
             n_ctx = len(ctx_init.split(" "))
             prompt = clip.tokenize(ctx_init)
             with torch.no_grad():
                 embedding = self.embedding_func(prompt).type(self.dtype)
             ctx_vectors = embedding[0, 1 : 1 + n_ctx, :]
+            ctx_vectors = ctx_vectors.unsqueeze(0)
+            ctx_vectors = torch.tile(ctx_vectors, (self.n_prm, 1, 1))
             prompt_prefix = ctx_init
         else:
             # random initialization
@@ -212,7 +231,10 @@ class CoCoOpPromptLearner(BasePromptLearner):
     def forward(self, im_features):
         prefix = self.token_prefix
         suffix = self.token_suffix
-        ctx = self.ctx                     # (n_ctx, ctx_dim)
+        if self.ctx.dim() == 2:
+            ctx = self.ctx                     # (n_ctx, ctx_dim)
+        elif self.ctx.dim() == 3:
+            ctx = self.ctx.squeeze()
         bias = self.meta_net(im_features)  # (batch, ctx_dim)
         bias = bias.unsqueeze(1)           # (batch, 1, ctx_dim)
         ctx = ctx.unsqueeze(0)             # (1, n_ctx, ctx_dim)
@@ -391,13 +413,20 @@ class VLPromptLearner(BasePromptLearner):
         self.text_fixed_embeddings = torch.cat(all_teacher_features, dim=1).mean(dim=1)
 
     def init_prompt(self, ):
-        if self.ctx_init and self.n_ctx <= 4:
+        if self.ctx_init:
             # use given words to initialize context vectors
-            ctx_init = ctx_init.replace("_", " ")
+            if self.ctx_init == 'CLIP':
+                ctx_init = CUSTOM_TEMPLATES[self.dataset]
+                ctx_init = ctx_init.replace(" {}.", "")
+            else:
+                ctx_init = self.ctx_init.replace("_", " ")
+            n_ctx = len(ctx_init.split(" "))
             prompt = clip.tokenize(ctx_init)
             with torch.no_grad():
                 embedding = self.embedding_func(prompt).type(self.dtype)
-            ctx_vectors = embedding[0, 1: 1 + self.n_ctx, :]
+            ctx_vectors = embedding[0, 1 : 1 + n_ctx, :]
+            ctx_vectors = ctx_vectors.unsqueeze(0)
+            ctx_vectors = torch.tile(ctx_vectors, (self.n_prm, 1, 1))
             prompt_prefix = ctx_init
         else:
             # random initialization
@@ -434,6 +463,8 @@ class VLPromptLearner(BasePromptLearner):
         ctx = self.ctx
         if ctx.dim() == 2:
             ctx = ctx.unsqueeze(0).expand(self.n_cls, -1, -1)
+        if ctx.dim() == 3:
+            ctx = ctx.expand(self.n_cls, -1, -1)
 
         prefix = self.token_prefix
         suffix = self.token_suffix

@@ -87,7 +87,7 @@ class PromptSRCCLIP(BaseCLIP):
         states = {
                 k: v.detach().clone().cpu()
                 for k, v in self.prompt_learner.state_dict().items()
-                                if filter_states(self.prompt_algo, k)}
+                                if filter_states(k)}
         current_model_weights = states
         weighted_state_dict = self.state_dict_weighting(current_model_weights, current_epoch_weight)
         if self.previous_model_gpa is None:

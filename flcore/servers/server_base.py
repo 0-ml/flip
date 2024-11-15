@@ -111,9 +111,12 @@ class ServerBase(object):
         print("Turning off gradients in both the image and the text encoder")
         def requires_grad_filter(name):
             requires_list = ['prompt_learner', 'decoder',]
-            excludes_list = ['prompt_learner.embedding_func.weight']
+            excludes_list = ['embedding_func', 'ZS_image_encoder']
             for k in requires_list:
-                if k in name and name not in excludes_list:
+                if k in name:
+                    for e in excludes_list:
+                        if e in name:
+                            return False
                     return True
             return False
         for name, param in self.model.named_parameters():
@@ -246,9 +249,9 @@ class ServerBase(object):
 
     def summarize(self,):
         if self.bench == 'base2novel':
-            exp_results = {'base': self.best_acc,
+            exp_results = {'base': self.best_acc_base,
                            'novel':self.best_acc_novel,
-                           'hm':self.best_acc_hm}
+                           'hm':self.best_acc}
         elif self.bench == 'dual':
             exp_results = {'global': self.best_acc,
                            'personal': self.best_acc_per,

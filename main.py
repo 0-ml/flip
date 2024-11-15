@@ -52,8 +52,6 @@ def special_args(args):
         args.eval_scaler = 1
     if args.prompt_algo == 'ProDA':
         args.prompt_batch_size = 1
-    if args.prompt_algo == 'CLIP':
-        args.ctx_init = 'a photo of a'
     if args.central == 'true':
         args.fed_algo = 'Central'
 
@@ -96,8 +94,8 @@ if __name__ == "__main__":
                                 help='federated learning algorithms')
     parser.add_argument('-palg', "--prompt_algo", type=str, default="CoOp",
                                         choices=['CLIP', 'CoOp', 'CoCoOp', 'PLOT',
-                                                 'ALIGN', 'ProDA', 'ProGrad', 'PromptSRC',
-                                                 'BPL', 'KgCoOp','OTP', ],
+                                                 'ProDA', 'ProGrad', 'PromptSRC',
+                                                 'KgCoOp','OTP', ],
                                 help='prompt learning algorithms')
     parser.add_argument('-ctr', "--central", type=str, default='false',
                                 help='centralized training mode')

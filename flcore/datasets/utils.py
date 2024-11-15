@@ -126,7 +126,7 @@ def split_dataset(name, dataset, policy, num_clients, num_shards, alpha, beta, b
             _counter += 1
             log.info(f'spliting client datasets, trying {_counter}...')
             if _counter == 100:
-                raise "data partition is not feasible..."
+                raise f"{name}: data partition is not feasible..."
         idx_subset = ImageSubset
         datasets = [idx_subset(dataset, client_indices[c]) for c in range(num_clients)]
         statistics = get_stats(datasets, num_clients, num_classes)

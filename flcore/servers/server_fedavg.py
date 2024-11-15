@@ -23,6 +23,7 @@ class FedAvg(ServerBase):
 
         self.Budget = []
         self.best_acc = 0.
+        self.best_acc_base = 0.
         self.best_acc_novel = 0.
         self.best_acc_hm = 0.
         self.best_acc_per = 0.
@@ -38,13 +39,23 @@ class FedAvg(ServerBase):
                 if top1 > self.best_acc:
                     self.best_acc = top1
                     self.best_acc_mds = md_accs
+                log.info(f'CLIP accs: {md_accs}')
+            elif self.bench == 'base2novel':
+                top1_base, _ = eval_base_novel(self.model, self.testloader_base, self.device,
+                                 self.train_classnames, self.test_classnames_base, self.precision)
+                top1_novel, _ = eval_base_novel(self.model, self.testloader_novel, self.device,
+                                 self.train_classnames, self.test_classnames_novel, self.precision)
+                top1_hm = hmean([top1_base, top1_novel])
+                if top1_hm > self.best_acc:
+                    self.best_acc = top1_hm
+                    self.best_acc_base = top1_base
+                    self.best_acc_novel = top1_novel
+                log.info(f'CLIP accs: base: {top1_base:.2%}, novel:{top1_novel:.2%}, hm:{top1_hm:.2%}')
             else:
                 top1, _ = eval_global(self.model, self.testloader, self.device,
                                       self.precision, self.task)
                 self.best_acc = top1
-                self.best_acc_per = top1
-                self.best_acc_hm = top1
-            log.info(f'CLIP acc: {top1:.2%}')
+                log.info(f'CLIP acc: {top1:.2%}')
         else:
             log.info('Starting Local Training...')
             for i in range(self.global_rounds+1):
@@ -79,24 +90,26 @@ class FedAvg(ServerBase):
         if self.eval_rounds > 1 and (self.rounds % self.eval_rounds != 0):
             return info, top1
 
-        if self.bench == 'base2novel':
-            top1, _ = eval_base_novel(self.model, self.testloader_base, self.device,
-                                 self.train_classnames, self.test_classnames_base, self.precision)
+        elif self.bench == 'base2novel':
+            top1_base, _ = eval_base_novel(self.model, self.testloader_base, self.device,
+                             self.train_classnames, self.test_classnames_base, self.precision)
             top1_novel, _ = eval_base_novel(self.model, self.testloader_novel, self.device,
-                                 self.train_classnames, self.test_classnames_novel, self.precision)
-            top1_hm = hmean([top1, top1_novel])
-            if top1_hm > self.best_acc_hm:
-                self.best_acc = top1
+                             self.train_classnames, self.test_classnames_novel, self.precision)
+            top1_hm = hmean([top1_base, top1_novel])
+            if top1_hm > self.best_acc:
+                self.best_acc = top1_hm
+                self.best_acc_base = top1_base
                 self.best_acc_novel = top1_novel
-                self.best_acc_hm = top1_hm
-            info += f', eval_novel: {top1_novel:.2%}'
-            info += f', best_hm: {self.best_acc_hm:.2%}'
-            self.tb.add_scalar('eval/top1_base', top1, self.rounds)
-            self.tb.add_scalar('eval/best_base', self.best_acc, self.rounds)
+            info += f', base: {top1_base:.2%}'
+            info += f', novel: {top1_novel:.2%}'
+            info += f', hm: {top1_hm:.2%}'
+            info += f', best_hm: {self.best_acc:.2%}'
+            self.tb.add_scalar('eval/top1_base', top1_base, self.rounds)
+            self.tb.add_scalar('eval/best_base', self.best_acc_base, self.rounds)
             self.tb.add_scalar('eval/top1_novel', top1_novel, self.rounds)
             self.tb.add_scalar('eval/best_novel', self.best_acc_novel, self.rounds)
             self.tb.add_scalar('eval/top1_hmean', top1_hm, self.rounds)
-            self.tb.add_scalar('eval/best_hmean', self.best_acc_hm, self.rounds)
+            self.tb.add_scalar('eval/best_hmean', self.best_acc, self.rounds)
             self.eval_multiple()
         elif self.bench == 'dual':
             top1, _ = eval_global(self.model, self.testloader, self.device,

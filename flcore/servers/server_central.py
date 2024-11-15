@@ -94,7 +94,6 @@ class Central(ServerBase):
             'flops.model': flops,
             'flops.total': flops * steps * self.batch_size,
         }
-        # self.model.train() # keep BN fixed
         try:
             for data, target in self.trainloader:
                 self._step(data, target, avg_losses, avg_add_losses, avg_accs)
@@ -113,7 +112,7 @@ class Central(ServerBase):
         end_time = time.time()
         log.info(
             f'{msg}, train: {float(avg_accs.mean()):.2%}, '
-            f'ep: {self.local_epochs}, '
+            f'ep: {self.cur_epoch}, '
             f'lr: {self._get_lr():.4f}, flops: {unit(flops)}, '
             f'loss: {(avg_losses.mean()):.4f}, '
             f'add_loss: {(avg_add_losses.mean()):.6f}, '

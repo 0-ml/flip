@@ -215,7 +215,6 @@ def build_loss_fn(base_probs, loss_type='ce', tau=1.0, reduction='mean'):
 
 
 def eval_global(model, dataloader, device, precision='amp', task='class'):
-    model.eval()
     model.set_classifier()
     ac = AccuracyCounter(
         len(dataloader.dataset), (1, 5),
@@ -231,7 +230,6 @@ def eval_global(model, dataloader, device, precision='amp', task='class'):
             else:
                 output = model(images, labels, test=True)
             ac.add(output, labels)
-    model.train()
     return ac.logout()
 
 def eval_base_novel(model, dataloader, device, train_classnames, test_classnames,
@@ -346,12 +344,14 @@ def plot_id_ood_gap(all_img_features, all_text_features):
                  [features_2d[i, 1], features_2d[num_feat+i, 1]],
                  c='black', alpha=0.1)
 
-excluded_keys = ['token_prefix', 'token_suffix','embedding_func.weight']
+excluded_keys = ['token_prefix', 'token_suffix','embedding_func.weight',
+                 'ZS_image_encoder']
 
 def filter_states(state):
     keys = excluded_keys
-    if state in keys:
-         return False
+    for k in keys:
+        if k in state:
+            return False
     else:
         return True
 
