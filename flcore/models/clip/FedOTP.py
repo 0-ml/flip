@@ -25,6 +25,8 @@ class FedOTPCLIP(BaseCLIP):
         self.thresh = 1e-3
         self.OT = 'Sinkhorn'
         self.top_percent = 1
+        self.image_backbone = "ResNet" if 'RN' in args.image_backbone \
+                                                        else 'ViT'
 
     def Sinkhorn(self, K, u, v):
         r = torch.ones_like(u)
@@ -84,8 +86,11 @@ class FedOTPCLIP(BaseCLIP):
 
         b = image.shape[0]
         image_features = self.image_encoder(image.type(self.dtype))
-        image_feature_pool = image_features[0]
-        image_features = image_features[1:]
+        if self.image_backbone == 'ResNet':
+            image_feature_pool = image_features[0]
+            image_features = image_features[1:]
+        else:
+            image_feature_pool = image_features
         M = image_features.shape[0]
         self.d = image_features.shape[-1]
 

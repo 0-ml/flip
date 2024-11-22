@@ -285,6 +285,7 @@ class VisionTransformer(nn.Module):
 
         if self.proj is not None:
             x = x @ self.proj
+        x = x.unsqueeze(0)
 
         return x
 
