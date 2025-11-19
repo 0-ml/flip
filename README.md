@@ -243,3 +243,14 @@ options:
 Each experimental run will create a `results` folder to save benchmarked metrics,
 an `output` folder to keep training logs and a `summaries` folder to store
 tensorboard logs for visualization.
+
+# Cite Our Paper
+```bibtex
+@inproceedings{liao2025flip,
+  title={{FL}iP: Towards Comprehensive and Reliable Evaluation of Federated Prompt Learning},
+  author={Dongping Liao and Xitong Gao and Cheng-zhong Xu},
+  booktitle={The Thirty-ninth Annual Conference on Neural Information Processing Systems Datasets and Benchmarks Track},
+  year={2025},
+  url={https://openreview.net/forum?id=slulgrji7e}
+}
+```
